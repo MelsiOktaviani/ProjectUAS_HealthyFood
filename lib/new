@@ -1,0 +1,277 @@
+import 'package:coffee_pandemi_app/coffee.dart';
+import 'package:coffee_pandemi_app/database/db_helper.dart';
+import 'package:coffee_pandemi_app/detail_page.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_money_formatter/flutter_money_formatter.dart';
+import 'package:grouped_buttons/grouped_buttons.dart';
+
+class ListCart extends StatefulWidget {
+  @override
+  _ListCartState createState() => _ListCartState();
+}
+
+class _ListCartState extends State<ListCart> {
+  List<Coffee> _listCheckout = [];
+  List<String> _listCoffeeName = [];
+  List<Coffee> _listCoffee = [];
+  String totalString = '';
+  int total = 0;
+
+  void setTotal() {
+    _listCheckout.clear();
+
+    setState(() {
+      for (var i = 0; i < _listCoffeeName.length; i++) {
+        for (var j = 0; j < _listCoffee.length; j++) {
+          if (_listCoffeeName[i] == _listCoffee[j].name) {
+            _listCheckout.add(_listCoffee[j]);
+          }
+        }
+      }
+      _listCheckout.forEach((element) {
+        total = total + (element.price * element.jumlah);
+      });
+
+      FlutterMoneyFormatter fmf =
+          FlutterMoneyFormatter(amount: double.parse(total.toString()));
+      totalString = fmf.output.withoutFractionDigits;
+    });
+  }
+
+  void getCoffee() {
+    total = 0;
+    _listCheckout.clear();
+    DbHelper.myDB.getAllCoffee().then((value) {
+      setState(() {
+        _listCoffee = value;
+      });
+    });
+
+    // var newlist = await DbHelper.myDB.getAllAnimal();
+    // _listCoffee = newlist;
+    // setState(() {
+    // });
+  }
+
+  @override
+  void initState() {
+    getCoffee();
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Color(0xFFDAB68C),
+        title: Text('LIST CART COFFEE'),
+      ),
+      bottomNavigationBar: Container(
+          padding: EdgeInsets.all(8),
+          child: Container(
+            height: 100,
+            width: 40,
+            decoration: BoxDecoration(color: Colors.grey[200]),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Total',
+                        style: TextStyle(fontSize: 18),
+                      ),
+                      Text('Rp. ${totalString.replaceAll(',', '.')}',
+                          style: TextStyle(fontSize: 25)),
+                    ],
+                  ),
+                ),
+                RaisedButton(
+                  color: Colors.brown,
+                  onPressed: () {},
+                  child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text('CHECK OUT',
+                          style: TextStyle(fontSize: 20, color: Colors.white))),
+                )
+              ],
+            ),
+          )),
+      body: CheckboxGroup(
+        labels: _listCoffee.map((e) => e.name).toList(),
+        itemBuilder: (checkBox, label, index) {
+          Coffee coffee = _listCoffee[index];
+          return Container(
+            padding: EdgeInsets.all(5),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                checkBox,
+                Image.asset(
+                  coffee.image,
+                  height: 100,
+                  width: 100,
+                  fit: BoxFit.cover,
+                ),
+                SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      coffee.name,
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      'Rp. ${coffee.price}',
+                      style: TextStyle(color: Colors.orange, fontSize: 20),
+                    ),
+                    SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                          border: Border.all(width: 1, color: Colors.black),
+                          borderRadius: BorderRadius.circular(5)),
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              int newjumlah = coffee.jumlah - 1 <= 0
+                                  ? 1
+                                  : coffee.jumlah - 1;
+                              Coffee newcoffee = Coffee(
+                                id: coffee.id,
+                                name: coffee.name,
+                                desc: coffee.desc,
+                                price: coffee.price,
+                                star: coffee.star,
+                                image: coffee.image,
+                                jumlah: newjumlah,
+                              );
+                              DbHelper.myDB
+                                  .updateWhereId(newcoffee)
+                                  .then((value) {
+                                print('value: $value');
+                              });
+                              getCoffee();
+                              setTotal();
+                              // setState(() {});
+                            },
+                            child: Container(
+                              height: 30,
+                              width: 30,
+                              color: Colors.amber,
+                              alignment: Alignment.center,
+                              child: Text(
+                                '-',
+                                style: TextStyle(fontSize: 30),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Text(coffee.jumlah.toString(),
+                              style: TextStyle(fontSize: 20)),
+                          SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              int newjumlah = coffee.jumlah + 1 >= 100
+                                  ? 100
+                                  : coffee.jumlah + 1;
+                              Coffee newcoffee = Coffee(
+                                id: coffee.id,
+                                name: coffee.name,
+                                desc: coffee.desc,
+                                price: coffee.price,
+                                star: coffee.star,
+                                image: coffee.image,
+                                jumlah: newjumlah,
+                              );
+                              DbHelper.myDB
+                                  .updateWhereId(newcoffee)
+                                  .then((value) {
+                                print('Value: $value');
+                              });
+                              getCoffee();
+                              setTotal();
+                              // setState(() {});
+                            },
+                            child: Container(
+                              height: 30,
+                              width: 30,
+                              color: Colors.amber,
+                              alignment: Alignment.center,
+                              child: Text(
+                                '+',
+                                style: TextStyle(fontSize: 30),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+                Spacer(),
+                SizedBox(
+                  height: 100,
+                  child: Column(
+                    children: [
+                      Spacer(),
+                      GestureDetector(
+                        onTap: () {
+                          DbHelper.myDB.deleteWhereId(coffee.id);
+                          getCoffee();
+                          setState(() {});
+                        },
+                        child: Container(
+                          height: 50,
+                          width: 30,
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.delete,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          );
+        },
+        onSelected: (listCoffeeName) {
+          setState(() {
+            _listCoffeeName = listCoffeeName;
+          });
+
+          // listCoffeeName.forEach((coffeeName) {
+          //   _listCoffee.forEach((element) {
+          //     if (coffeeName == element.name) {
+          //       _listCheckout.add(element);
+          //     }
+          //   });
+          // });
+
+          setTotal();
+        },
+      ),
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () => Navigator.push(
+      //     context,
+      //     MaterialPageRoute(
+      //       builder: (context) => AddCoffee(),
+      //     ),
+      //   ).then((value) {
+      //     getCoffee();
+      //   }),
+      //   child: Icon(Icons.add),
+      // ),
+    );
+  }
+}
